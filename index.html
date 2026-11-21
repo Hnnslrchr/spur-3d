@@ -46,7 +46,7 @@ a { color: var(--focus); }
 /* Werkzeugleiste unten */
 .bar { position: fixed; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); z-index: 5; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
 .seg { display: flex; background: var(--glass-2); border-radius: 10px; padding: 2px; gap: 2px; }
-.seg button { flex: 1; border: 0; background: none; border-radius: 8px; padding: 7px 4px; font-size: 0.8rem; font-weight: 500; min-height: 34px; white-space: nowrap; color: var(--ink-2); }
+.seg button { flex: 1; min-width: 0; border: 0; background: none; border-radius: 8px; padding: 6px 4px; font-size: 0.8rem; font-weight: 500; line-height: 1.15; min-height: 34px; white-space: normal; color: var(--ink-2); }
 .seg button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.22); color: var(--ink); font-weight: 650; }
 .tools { display: flex; gap: 8px; }
 .tools button { flex: 1; min-height: 44px; border: 0; border-radius: 10px; background: var(--glass-2); display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.86rem; font-weight: 600; }
@@ -105,7 +105,7 @@ input[type="range"] { width: 100%; accent-color: var(--ink); }
 <div id="toast" class="toast glass" role="status" hidden></div>
 <div class="bar glass">
   <div class="prog" id="prog" aria-hidden="true"><i></i></div>
-  <div id="seg" class="seg" role="group" aria-label="Satellitenbild"></div>
+  <div id="seg" class="seg" role="group" aria-label="Kartenebene"></div>
   <div class="tools">
     <button type="button" id="b3d" aria-pressed="true" aria-label="3D-Gelände ein oder aus"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 19l6.5-10 4 6 2.5-3.5L22 19z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>3D</span></button>
     <button type="button" id="bfly" aria-pressed="false" aria-label="Entlang der Strecke fliegen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z" fill="currentColor"/></svg><span>Abfliegen</span></button>
@@ -127,7 +127,7 @@ input[type="range"] { width: 100%; accent-color: var(--ink); }
       <button type="button" class="btn" id="ksave">Speichern</button>
     </div>
     <div class="small" style="margin-top:18px">
-      <b>Datenschutz:</b> Die Strecke steht nur im Teil der Adresse hinter dem #. Er wird nie an einen Server gesendet, und diese Seite speichert keine Strecken. Die Kartendienste (Land Südtirol, EOX, AWS, MapTiler) sehen nur, welche Kartenausschnitte geladen werden.
+      <b>Datenschutz:</b> Die Strecke steht nur im Teil der Adresse hinter dem #. Er wird nie an einen Server gesendet, und diese Seite speichert keine Strecken. Die Kartendienste (OpenTopoMap, Land Südtirol, EOX, AWS, MapTiler) sehen nur, welche Kartenausschnitte geladen werden.
     </div>
     <button type="button" class="btn sec" id="wipe" style="margin-top:14px;width:100%">Einstellungen auf diesem Gerät löschen</button>
     <div class="small" style="margin-top:14px">Kartenanzeige: <a href="https://maplibre.org" target="_blank" rel="noopener">MapLibre GL JS</a> (BSD-3-Clause).</div>
@@ -209,13 +209,14 @@ return maplibregl$1;
   function satSource(kind) {
     if (kind === 'bz') return { type: 'raster', tiles: [BZ_WMS], tileSize: 512, maxzoom: 19, attribution: 'Orthofoto 2023 © <a href="https://geoportal.buergernetz.bz.it" target="_blank" rel="noopener">Autonome Provinz Bozen – Südtirol</a> (CC BY 4.0)' };
     if (kind === 'mt') return { type: 'raster', url: 'https://api.maptiler.com/tiles/satellite-v2/tiles.json?key=' + encodeURIComponent(store.key || ''), tileSize: 512 };
+    if (kind === 'topo') return { type: 'raster', tiles: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://b.tile.opentopomap.org/{z}/{x}/{y}.png', 'https://c.tile.opentopomap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 17, attribution: 'Karte: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende, SRTM | Darstellung: © <a href="https://opentopomap.org" target="_blank" rel="noopener">OpenTopoMap</a> (CC-BY-SA)' };
     return { type: 'raster', tiles: ['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg'], tileSize: 256, maxzoom: 14, attribution: '<a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless – s2maps.eu</a> by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2024)' };
   }
   function demSource() {
     if (store.key) return { type: 'raster-dem', url: 'https://api.maptiler.com/tiles/terrain-rgb-v2/tiles.json?key=' + encodeURIComponent(store.key), encoding: 'mapbox', tileSize: 512 };
     return { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 15, attribution: 'Höhen: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Terrain Tiles</a> (Mapzen, AWS Open Data)' };
   }
-  var SAT_LABEL = { bz: 'Südtirol 20 cm', eox: 'Sentinel-2 · 10 m', mt: 'MapTiler' };
+  var SAT_LABEL = { topo: 'Karte', bz: 'Südtirol 20 cm', eox: 'Sentinel-2 · 10 m', mt: 'MapTiler' };
 
   // grobe Landesgrenze Südtirols (lng, lat) – nur für die Vorauswahl der Ebene
   var BZ_POLY = [[10.47, 46.85], [10.73, 46.80], [11.10, 46.91], [11.51, 47.01], [12.10, 47.09], [12.24, 47.07], [12.48, 46.77], [12.31, 46.62], [11.85, 46.45], [11.61, 46.38], [11.20, 46.22], [11.05, 46.40], [10.85, 46.48], [10.45, 46.53], [10.47, 46.64]];
@@ -349,7 +350,7 @@ return maplibregl$1;
     if (!id || !(id in errs)) return;
     errs[id]++;
     if (id === 'sat' && errs.sat === 4 && okTiles.sat === 0) {
-      var next = sat === 'bz' ? 'eox' : sat === 'mt' ? 'eox' : null;
+      var next = sat === 'bz' || sat === 'mt' || sat === 'topo' ? 'eox' : null;
       if (next) { toast(SAT_LABEL[sat] + ' lädt nicht. Wechsle zu ' + SAT_LABEL[next] + '.', true); setSat(next, true); }
       else toast('Satellitenbild lädt nicht. Prüfe die Internetverbindung.', true);
     }
@@ -489,7 +490,7 @@ return maplibregl$1;
   function renderSeg() {
     var seg = $('#seg');
     seg.innerHTML = '';
-    ['bz', 'eox', 'mt'].forEach(function (k) {
+    ['topo', 'bz', 'eox', 'mt'].forEach(function (k) {
       var b = document.createElement('button');
       b.type = 'button';
       b.textContent = SAT_LABEL[k] + (k === 'mt' && !store.key ? ' …' : '');
